@@ -34,7 +34,7 @@
 
 >   下面图展示了整个程序的执行流程。
 
-![image-process](.\picture\image-process.png)
+![image-process](./picture/image-process.png)
 
 
 
