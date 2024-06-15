@@ -31,7 +31,7 @@
 
 >   下面图展示了整个程序的执行流程。
 
-![image-20240612145111543](.scoreboard\picture\image-process.png\image-20240612145111543.png)
+![image-process](./scoreboard/picture/image-process.png)
 
 
 
