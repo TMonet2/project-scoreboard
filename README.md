@@ -15,7 +15,7 @@
 
 #### 测试用例
 
-在instance目录中，包含含有各种冲突的测试用例，以验证算法的正确性和性能。通过Instr_Init()函数对输入进行处理，预处理instruction。通过check函数进行验证。
+在instance目录中，包含含有各种冲突的测试用例，以验证算法的正确性和性能。通过Instr_Init()函数对输入进行处理，预处理instruction。通过compareFiles函数进行验证。
 
 
 
