@@ -46,9 +46,9 @@ struct node  //指令结构 node 用于存储每条指令的详细信息
 	string op;//操作类型，如加载（LD）、加法（ADDD）等
 	int busy;//指令当前占用的功能部件编号
 	int fi;//目标寄存器
-    int fj, fk;//源寄存器
-    int qj, qk;//源操作数队列标识，用于跟踪操作数的来源
-    int rj, rk;//标记源寄存器 fj 和 fk 的数据是否已经准备好
+        int fj, fk;//源寄存器
+        int qj, qk;//源操作数队列标识，用于跟踪操作数的来源
+        int rj, rk;//标记源寄存器 fj 和 fk 的数据是否已经准备好
 	int cycle;//指令完成所需的时钟周期数
 	int time[4];//录指令在不同阶段的时间戳
 };
