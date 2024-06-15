@@ -1,4 +1,4 @@
-﻿#include <iostream>
+#include <iostream>
 #include <algorithm>
 #include <cmath>
 #include <cstring>
@@ -8,11 +8,15 @@
 #include <stack>
 #include <set>
 #include <map>
+#include <iomanip> 
+#include <cctype>
+#include <fstream> 
 
 using namespace std;
+#define endl '\n'
 string a[] = { " " ,"LD", "ADDD",  "SUBD",  "DIVD", "MULTD" };//操作类型
 string name[] = { " ","Integer", "Mult1", "Mult2", "Add", "Divide" };
-#define _CRT_SECURE_NO_WARNINGS
+
 const int M = 30;//寄存器的个数
 const int P = 5;//功能部件的个数
 int n;//指令条数
@@ -37,13 +41,14 @@ int x = 1;//发射阶段对应当前的下标
 int cycle = 1;//对应当前的周期
 
 void init();//初始化
-void Instr_Init();//预处理输入
+void Instr_Init();//预处理输入z
 void issue_operation();//发射阶段
 void read_operands();//读操作数阶段 
 void execute();//执行阶段 
 void write_result();//写结果阶段
 string print_Space(int num);//输出空格
 void print(int x);//输出空格
+bool check();
 
 
 void init()//初始化赋值
@@ -281,7 +286,7 @@ void print()
 	cout << print_Space(5) << "|";
 	for (i = 0; i <= 30; i++)
 	{
-		printf("F%02d|", i);
+		cout << setw(3) << setfill('0') << "F" << i << "|";
 	}
 	cout << endl;
 
@@ -465,26 +470,76 @@ void write_result()
 	}
 }
 
+string file1 = "./instance/output.txt";
+string file2 = "./instance/output1.txt";
 
+
+// 函数用于去除字符串中的所有空白字符，包括空格和换行
+std::string removeWhitespaceAndNewlines(const std::string& str) {
+    std::string result;
+    for (char c : str) {
+        // 忽略空格、制表符、换行符等
+        if (!std::isspace(static_cast<unsigned char>(c)) && c != '\n' && c != '\r') {
+            result += c;
+        }
+    }
+    return result;
+}
+
+// 函数用于比较两个文件的内容
+bool compareFiles(const std::string& file1, const std::string& file2) {
+    std::ifstream f1(file1);
+    std::ifstream f2(file2);
+
+    if (!f1.is_open() || !f2.is_open()) {
+        std::cerr << "Error opening one of the files." << std::endl;
+        return false;
+    }
+
+    std::string line1, line2;
+
+    // 逐行比较文件内容
+    while (getline(f1, line1) && getline(f2, line2)) {
+        std::string content1 = removeWhitespaceAndNewlines(line1);
+        std::string content2 = removeWhitespaceAndNewlines(line2);
+        if (content1 != content2) {
+            return false; // 内容不匹配
+        }
+    }
+
+    // 检查是否两个文件都到达末尾，如果没有，说明文件长度不同
+    return f1.eof() && f2.eof();
+}
 int main()
 {
-	//freopen("input.txt", "r", stdin);//从input.txt文件中读入
-	//freopen("output.txt", "w", stdout);//输出到output.txt文件中
+	int i;
+	cout << "测试用例的编号为(1 or 2 or 3 or 4 or 5)：  ";
+	scanf("%d,", &i);
+	cout << endl;
+
+	string s = "input" + to_string(i) + ".txt";
+
+	freopen("./instance/input.txt", "r", stdin);//从input.txt文件中读入
+	freopen("./instance/output2.txt", "w", stdout);//输出到output.txt文件中
 	init();
 	Instr_Init();
 	//算法正式开始
-	while (true)
+	while (process[5].size() != n)
 	{
 		//如果所有指令均已完成
-		if (process[5].size() == n) break;
-		cout << "--------------------------------------------------------------------------------------------------------------------" << endl;
 		issue_operation();
 		read_operands();
 		execute();
 		write_result();
 		print();
 		cycle++;
-		cout << "--------------------------------------------------------------------------------------------------------------------" << endl << endl;
 	}
-}
 
+	if (compareFiles(file1, file2)) {
+		cout << "The files are identical, ignoring whitespace." << endl;
+	}
+	else {
+		cout << "The files are different." << endl;
+	}
+
+}
