@@ -1,8 +1,8 @@
 ## 记分牌算法仿真器
 
-#### 实验目的
+#### 实验背景
 
-模拟记分牌算法，实现指令的动态调度，加深对指令相关性的理解。
+计算机系统结构课程实验选题之模拟记分牌算法，实现指令的动态调度，加深对指令相关性的理解。
 
 
 
@@ -13,31 +13,17 @@
 
 
 
-#### 测试用例
-
-在instance目录中，包含含有各种冲突的测试用例，以验证算法的正确性和性能。通过Instr_Init()函数对输入进行处理，预处理instruction。可通过test.cpp进行验证。
-
-
-
-#### 运行
-
-1. 编译程序：`g++ -o scoreboard_sim scoreboard.cpp`
-2. 运行程序：`./scoreboard_sim`
-3. 查看输出结果，模拟器将打印每个周期的状态。
-
-
-
 #### 框架
 
 >   下面图展示了整个程序的执行流程。
 
 ![image-process](./scoreboard/picture/image-process.png)
 
-
-
 #### 技术路线
 
-1. 设计数据结构
+程序总共包括两个部分，数据输入，数据处理和数据输出。输入包括流水线中指令序列的指令数、指令序列。输出包括每一周期的记分牌记录的三个状态表。
+
+1. 数据结构：利用数组instruction，Busy，result来对应指令状态，功能部件和结果寄存器。
 
 ```
 struct node  //指令结构 node 用于存储每条指令的详细信息
@@ -46,9 +32,9 @@ struct node  //指令结构 node 用于存储每条指令的详细信息
 	string op;//操作类型，如加载（LD）、加法（ADDD）等
 	int busy;//指令当前占用的功能部件编号
 	int fi;//目标寄存器
-        int fj, fk;//源寄存器
-        int qj, qk;//源操作数队列标识，用于跟踪操作数的来源
-        int rj, rk;//标记源寄存器 fj 和 fk 的数据是否已经准备好
+    int fj, fk;//源寄存器
+    int qj, qk;//源操作数队列标识，用于跟踪操作数的来源
+    int rj, rk;//标记源寄存器 fj 和 fk 的数据是否已经准备好
 	int cycle;//指令完成所需的时钟周期数
 	int time[4];//录指令在不同阶段的时间戳
 };
@@ -56,168 +42,51 @@ struct node  //指令结构 node 用于存储每条指令的详细信息
 vector<node> instruction;
 vector<int> Busy;//记录当前占用功能部件的指令索引
 vector<int> result;//记录写回结果的指令索引，用于跟踪寄存器的最新写入者
-vector<vector<int> > wait;//等待寄存器结果的指令队列
-
-vector<vector<int> > tmp_process;//完成当前流程的指令
-vector<set<int> > process;//实现issue-decode-exe-wb 四个阶段的指令队列
-
-map<string, int> End_cycle;//指令对应的时钟周期
-map<string, int> Func;//指令对应的功能部件名称
 ```
 
 
 
-- 2.初始化和分配空间
+2.数据处理
 
-处理输入，并对数组分配相应的空间
+根据读入的指令数和指令序列初始化instruction，将其解析为包括操作码、目的寄存器、操作数几部分。同时完成对每条指令的时钟周期的赋值。
 
 ```
-void init()//初始化赋值
-{
-	End_cycle[a[1]] = 1;
-	End_cycle[a[2]] = 2;
-	End_cycle[a[3]] = 2;
-	End_cycle[a[4]] = 40;
-	End_cycle[a[5]] = 10;
-
-	Func[a[1]] = 1;
-	Func[a[2]] = 4;
-	Func[a[3]] = 4;
-	Func[a[4]] = 5;
-	Busy.resize(P + 1);//设置数组的空间
-	result.resize(M + 1);
-	wait.resize(M + 1);
-	tmp_process.resize(4 + 1);//有4个阶段
-	process.resize(4 + 2);//有4个阶段
-}
-
 void Instr_Init()
 {
-	int i, j, tmp;
-	string s;
-	bool flag;
 	cin >> n;
-	instruction.resize(n + 1);//初始化分配地址
-
-	getchar();//清除输入流中的换行符，以避免影响后续的输入
+	instruction.resize(n + 1);
 
 	for (i = 1; i <= n; i++)
 	{
 		getline(cin, s);//字符具有空格，用getline整行读入
-		if (s[0] == 'L')//初始化
-		{
-			instruction[i].op = a[1];
-			instruction[i].cycle = 1;
-		}
-		else if (s[0] == 'A')
-		{
-			instruction[i].op = a[2];
-			instruction[i].cycle = 2;
-		}
-		else if (s[0] == 'S')
-		{
-			instruction[i].op = a[3];
-			instruction[i].cycle = 2;
-		}
-		else if (s[0] == 'D')
-		{
-			instruction[i].op = a[4];
-			instruction[i].cycle = 40;
-		}
-		else if (s[0] == 'M')
-		{
-			instruction[i].op = a[5];
-			instruction[i].cycle = 10;
-		}
-
-		flag = false;
-		for (j = 1; j < s.size(); j++)
-		{
-			if (s[j - 1] == 'F')
-			{
-				flag = true;
-				tmp = 0;
-			}
-			if (flag)
-			{
-				if (s[j] >= '0' && s[j] <= '9')
-				{
-					tmp = tmp * 10 + s[j] - '0';
-				}
-				else break;
-			}
-		}
-		instruction[i].fi = tmp;
-
-		if (s[0] == 'L')
-		{
-			flag = false;
-			for (j; j < s.size(); j++)
-			{
-				if (s[j - 1] == 'R')
-				{
-					flag = true;
-					tmp = 0;
-				}
-				if (flag)
-				{
-					if (s[j] >= '0' && s[j] <= '9')
-					{
-						tmp = tmp * 10 + s[j] - '0';
-					}
-					else break;
-				}
-			}
-			instruction[i].fk = tmp;
-		}
-		else
-		{
-			flag = false;
-			for (j; j < s.size(); j++)
-			{
-				if (s[j - 1] == 'F')
-				{
-					flag = true;
-					tmp = 0;
-				}
-				if (flag)
-				{
-					if (s[j] >= '0' && s[j] <= '9')
-					{
-						tmp = tmp * 10 + s[j] - '0';
-					}
-					else break;
-				}
-			}
-			instruction[i].fj = tmp;
-
-			flag = false;
-			for (j; j < s.size(); j++)
-			{
-				if (s[j - 1] == 'F')
-				{
-					flag = true;
-					tmp = 0;
-				}
-				if (flag)
-				{
-					if (s[j] >= '0' && s[j] <= '9')
-					{
-						tmp = tmp * 10 + s[j] - '0';
-					}
-					else break;
-				}
-			}
-			instruction[i].fk = tmp;
-		}
-		instruction[i].instrct = s;
+		instruction[i].op = cal();
+		instruction[i].fi = cal();
+		instruction[i].fj = cal();
+		instruction[i].fk = cal();
+		if (s[0] == 'L')instruction[i].cycle = 1;
+		else if (s[0] == 'A')instruction[i].cycle = 2;
+		else if (s[0] == 'S')instruction[i].cycle = 2;
+		else if (s[0] == 'D')instruction[i].cycle = 40;
+		else if (s[0] == 'M')instruction[i].cycle = 10;
 	}
+}
+```
+
+初始化功能部件状态表中busy值为0，表示相应的功能部件当前是空闲的，即没有指令正在使用它。初始化结果寄存器状态表值为0，表示相应的寄存器当前没有写回操作，或者没有指令正在等待写回该寄存器的结果。
+
+```
+const int M = 30;//寄存器的个数
+const int P = 5;//功能部件的个数
+void init()//初始化
+{
+	Busy.resize(P + 1);
+	result.resize(M + 1);
 }
 ```
 
 
 
-- 3.程序的循环（核心部分）
+- 3.算法具体实现——程序的循环（核心部分）
 
 **发射**：如果指令的一个功能单元空闲（功能部件状态的`busy`字段），且没有其它活动指令以同一寄存器为目标寄存器（目标寄存器状态是否为空），则记分牌向功能单元发射指令，并更新指令状态。该步骤能解决**结构冒险**和**WRW冒险。**
 
@@ -225,28 +94,18 @@ void Instr_Init()
 void issue_operation()
 {
 	int fu;//前指令要使用的功能单元
-	if (x <= n)
-	{
+	if (x <= n) {
 		//判断功能部件是否有空闲
 		bool if_busy = false;
-		if (instruction[x].op == a[5] && (!Busy[2] || !Busy[3]))
-		{
-			if_busy = true;
-		}
+		if (instruction[x].op == a[5] && (!Busy[2] || !Busy[3])) if_busy = true;
 		else {
-			if (!Busy[Func[instruction[x].op]])
-			{
-				if_busy = true;
-			}
+			if (!Busy[Func[instruction[x].op]]) if_busy = true;
 		}
 
 		//判断是否有写后写（WAW）冲突
-		if (if_busy && !result[instruction[x].fi])
-		{
-			if (instruction[x].op == a[5])
-			{
-				if (Busy[2] == 0)
-				{
+		if (if_busy && !result[instruction[x].fi]) {
+			if (instruction[x].op == a[5]) {
+				if (Busy[2] == 0) {
 					instruction[x].busy = 2;
 				}
 				else if (Busy[3] == 0)
@@ -254,8 +113,7 @@ void issue_operation()
 					instruction[x].busy = 3;
 				}
 			}
-			else if (!Busy[Func[instruction[x].op]])
-			{
+			else if (!Busy[Func[instruction[x].op]]) {
 				instruction[x].busy = Func[instruction[x].op];
 			}
 			//修改记分牌内容
@@ -264,23 +122,15 @@ void issue_operation()
 
 			instruction[x].qj = instruction[result[instruction[x].fj]].busy;
 			instruction[x].qk = instruction[result[instruction[x].fk]].busy;
-			if (result[instruction[x].fj] == 0)
-			{
-				instruction[x].rj = 1;
-			}
-			else
-			{
+			if (result[instruction[x].fj] == 0) instruction[x].rj = 1;
+			else {
 				instruction[x].rj = 0;
 				wait[instruction[x].fj].push_back(x);
 			}
-			if (result[instruction[x].fk] == 0)
-			{
-				instruction[x].rk = 1;
-			}
-			else
-			{
+			if (result[instruction[x].fk] == 0) instruction[x].rk = 1;
+			else {
 				instruction[x].rk = 0;
-				wait[instruction[x].fk].push_back(x);//等待寄存器的结果
+				wait[instruction[x].fk].push_back(x);
 			}
 			result[instruction[x].fi] = x;
 			instruction[x].time[0] = cycle;
@@ -293,7 +143,7 @@ void issue_operation()
 
 
 
-**读取操作数**：如果不存在检查活动指令写入源寄存器（`Rj`和`Rk`字段为yes），记分牌将该指令发送到功能部件（`Rj`和`Rk`字段标记为no）。该步骤能解决**RAW冒险**。
+**读取操作数**：如果不存在检查活动指令写入源寄存器（`Rj`和`Rk`字段为yes），则修改记分牌内容。该步骤能解决**RAW冒险**。
 
 ```
 void read_operands()
@@ -313,7 +163,7 @@ void read_operands()
 
 
 
-**执行**：功能单元开始执行对应操作，更新功能单元状态。当结果就绪后，通知记分牌。将 `qj` ，`qk` ， `rj` 和 `rk` 重置为0，表示源操作数已被读取，不再需要等待（这个地方更新不能放在Read阶段，不然可能会出现读后写冲突！！！）
+**执行**：功能单元开始执行对应操作，更新功能单元状态。当结果就绪后，通知记分牌。将 `rj` 和 `rk` 重置为0，表示源操作数已被读取，不再需要等待（这个地方更新不能放在Read阶段，不然可能会出现读后写冲突！！！）
 
 ```
 void execute()
@@ -321,8 +171,6 @@ void execute()
 	for (int x : process[3])
 	{
 		//修改记分牌内容
-		instruction[x].qj = 0;
-		instruction[x].qk = 0;
 		instruction[x].rj = 0;
 		instruction[x].rk = 0;
 		instruction[x].cycle--;
@@ -344,8 +192,7 @@ void write_result()
 {
 	int i, j, tmp;
 	bool flag;
-	for (int x : process[4])
-	{
+	for (int x : process[4]) {
 		flag = false;
 		//判断是否存在读后写（WAR）冲突
 		for (int y : process[2])
@@ -354,21 +201,18 @@ void write_result()
 			if ((instruction[y].fj != instruction[x].fi || instruction[y].rj == 0) && (instruction[y].fk != instruction[x].fi || instruction[y].rk == 0))
 			{
 			}
-			else
-			{
+			else {
 				flag = true;
 				break;
 			}
 		}
-		if (!flag)
-		{
+		if (!flag) {
 			instruction[x].time[3] = cycle;
 			result[instruction[x].fi] = 0;
 			Busy[instruction[x].busy] = 0;
 			instruction[x].busy = 0;
 
-			for (j = 0; j < wait[instruction[x].fi].size(); j++)
-			{
+			for (j = 0; j < wait[instruction[x].fi].size(); j++) {
 				int y = wait[instruction[x].fi][j];
 				if (instruction[y].fj == instruction[x].fi) instruction[y].rj = 1;
 				if (instruction[y].fk == instruction[x].fi) instruction[y].rk = 1;
@@ -378,107 +222,59 @@ void write_result()
 			tmp_process[4].push_back(x);
 		}
 	}
-	for (i = 1; i <= 4; i++)
-	{
-		for (j = 0; j < tmp_process[i].size(); j++)
-		{
+	for (i = 1; i <= 4; i++) {
+		for (j = 0; j < tmp_process[i].size(); j++) {
 			tmp = tmp_process[i][j];
 			process[i].erase(tmp);
 			process[i + 1].insert(tmp);
 
 		}
-		tmp_process[i].clear();//清空
+		tmp_process[i].clear();
 	}
 }
 ```
 
 然后每次大循环执行完毕之后，将结果Display一下，然后cycle++。
 
-- 4.测试
+- 数据输出：
+
+1.如果使用的是命令行编译器（如GCC或MinGW），打开命令提示符（cmd），导航到`.cpp`文件所在的目录，并使用编译器命令进行编译。如下：
 
 ```
-// 函数用于去除字符串中的所有空白字符，包括空格和换行
-string removeWhitespaceAndNewlines(string s) 
-{
-	string result;
-	for (char c : s) {
-		//忽略空格，非字母数字的字符，- 
-		if(c == ' ' || !isalnum(c) || c == '-')continue;
-		//如果是字母，则变成小写 
-		if(isalpha(c))result.push_back(tolower(c));
-		else result.push_back(c);
-	}
-	return result;
-}
-
-// 函数用于比较两个文件的内容
-bool compareFiles(string file1, string file2) {
-	ifstream f1(file1);
-	ifstream f2(file2);
-
-	if (!f1.is_open() || !f2.is_open()) 
-	{
-		cerr << "Error opening one of the files." << endl;
-		return false;
-	}
-	
-	string s1, s2;
-	string line1, line2;
-	int cnt = 1;
-	// 逐行比较文件内容
-	while (getline(f1, line1) && getline(f2, line2)) 
-	{
-		s1 = removeWhitespaceAndNewlines(line1);
-		s2 = removeWhitespaceAndNewlines(line2);
-		if(s1 != s2){
-			//输出哪行不一样 
-			cout << "Error in row :" << cnt << endl;
-			cout<<cnt<<endl;
-			return false;
-		}
-		cnt++;
-	}
-	
-	// 检查是否两个文件都到达末尾，如果没有，说明文件长度不同
-//	cout<<f1.eof()<<" "<<f2.eof()<<endl;
-//	if(!f1.eof() || !f2.eof()) 
-//	{
-//		cout<<"error!!!";
-//	}
-	return true;
-}
-
-void test(string file1, string file2) {
-	if (compareFiles(file1, file2)) 
-	{
-		cout << "The files are identical.Accept!" << endl;
-	}
-	else 
-	{
-		cout << "The files are different.Error!" << endl;
-	}
-}
+g++ -o scoreboard scoreboard.cpp
 ```
 
-- 5.其他亮点：全局变量部分
+运行程序：
 
 ```
-//使用数组来定义不同的操作类型，如加载（LD）、加法（ADDD）、减法（SUBD）、除法（DIVD）和乘法（MULTD），使得操作类型的管理和扩展变得简单明了。
-string a[] = { " " ,"LD", "ADDD",  "SUBD",  "DIVD", "MULTD" };//操作类型
-// 提供了功能部件的直观命名，帮助用户快速理解每个功能部件的用途
-string name[] = { " ","Integer", "Mult1", "Mult2", "Add", "Divide" };
-
-//灵活的时钟周期配置，允许模拟器根据指令类型安排执行时间。
-End_cycle[a[1]] = 1;
-End_cycle[a[2]] = 2;
-End_cycle[a[3]] = 2;
-End_cycle[a[4]] = 40;
-End_cycle[a[5]] = 10;
-
-//功能部件分配策略，定义了每种操作类型应该使用的特定功能部件
-Func[a[1]] = 1;
-Func[a[2]] = 4;
-Func[a[3]] = 4;
-Func[a[4]] = 5;
+scoreboard.exe
 ```
+
+2.如果使用的是IDE（如Visual Studio、Code::Blocks或CLion），可以通过点击IDE中的构建或编译按钮来编译代码，点击运行按钮来直接运行程序。
+
+效果如下：
+
+![image-20240621235452906](C:\Users\28102\AppData\Roaming\Typora\typora-user-images\image-20240621235452906.png)
+
+
+
+- 4.测试用例：在instance目录中，包含含有各种冲突的测试用例，以验证算法的正确性和性能。通过比对字符串的形式，将输出结果与期望值继续对比，验证结果的正确性。
+
+1.如果使用的是命令行编译器（如GCC或MinGW），打开命令提示符（cmd），导航到`.cpp`文件所在的目录，并使用编译器命令进行编译。如下：
+
+```
+g++ -o test test.cpp
+```
+
+运行程序：
+
+```
+test.exe
+```
+
+2.如果使用的是IDE（如Visual Studio、Code::Blocks或CLion），可以通过点击IDE中的构建或编译按钮来编译代码，点击运行按钮来直接运行程序。
+
+结果如下：
+
+![image-20240622000613067](C:\Users\28102\AppData\Roaming\Typora\typora-user-images\image-20240622000613067.png)
 
