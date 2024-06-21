@@ -2,8 +2,7 @@
 
 #### 实验背景
 
-计算机系统结构课程实验选题之模拟记分牌算法，实现指令的动态调度，加深对指令相关性的理解。
-
+计算机系统结构课程实验选题之算法仿真器，通过实现记分牌算法仿真器，模拟记分牌算法，实现指令的动态调度，加深对指令相关性的理解。
 
 
 #### 记分牌指令动态调度算法原理
@@ -32,9 +31,9 @@ struct node  //指令结构 node 用于存储每条指令的详细信息
 	string op;//操作类型，如加载（LD）、加法（ADDD）等
 	int busy;//指令当前占用的功能部件编号
 	int fi;//目标寄存器
-    int fj, fk;//源寄存器
-    int qj, qk;//源操作数队列标识，用于跟踪操作数的来源
-    int rj, rk;//标记源寄存器 fj 和 fk 的数据是否已经准备好
+        int fj, fk;//源寄存器
+        int qj, qk;//源操作数队列标识，用于跟踪操作数的来源
+        int rj, rk;//标记源寄存器 fj 和 fk 的数据是否已经准备好
 	int cycle;//指令完成所需的时钟周期数
 	int time[4];//录指令在不同阶段的时间戳
 };
@@ -252,10 +251,6 @@ scoreboard.exe
 
 2.如果使用的是IDE（如Visual Studio、Code::Blocks或CLion），可以通过点击IDE中的构建或编译按钮来编译代码，点击运行按钮来直接运行程序。
 
-效果如下：
-
-![image-20240621235452906](C:\Users\28102\AppData\Roaming\Typora\typora-user-images\image-20240621235452906.png)
-
 
 
 - 4.测试用例：在instance目录中，包含含有各种冲突的测试用例，以验证算法的正确性和性能。通过比对字符串的形式，将输出结果与期望值继续对比，验证结果的正确性。
@@ -273,8 +268,4 @@ test.exe
 ```
 
 2.如果使用的是IDE（如Visual Studio、Code::Blocks或CLion），可以通过点击IDE中的构建或编译按钮来编译代码，点击运行按钮来直接运行程序。
-
-结果如下：
-
-![image-20240622000613067](C:\Users\28102\AppData\Roaming\Typora\typora-user-images\image-20240622000613067.png)
 
