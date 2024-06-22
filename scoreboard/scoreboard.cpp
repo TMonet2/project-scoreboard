@@ -17,8 +17,10 @@ using namespace std;
 string a[] = { " " ,"LD", "ADDD",  "SUBD",  "DIVD", "MULTD" };//操作类型
 string name[] = { " ","Integer", "Mult1", "Mult2", "Add", "Divide" };
 
+
 const int M = 30;//寄存器的个数
 const int P = 5;//功能部件的个数
+const int N = 4;//表示算法流程数 
 int n;//指令条数
 struct node  //存放指令的参数
 {
@@ -32,11 +34,11 @@ struct node  //存放指令的参数
 vector<node> instruction;
 vector<int> Busy;//占用该功能部件的指令 
 vector<int> result;//写该寄存器的指令 
+
 vector<vector<int> > wait;//等待寄存器结果的指令 
 vector<vector<int> > tmp_process;//完成当前流程的指令
-vector<set<int> > process;//各个阶段的指令队列 
-map<string, int> End_cycle;//每种指令对应的时钟周期
-map<string, int> Func;//指令对应的功能部件名称
+vector<vector<int> > process;//各个阶段的指令队列 
+
 int x = 1;//发射阶段对应当前的下标
 int cycle = 1;//对应当前的周期
 
@@ -49,23 +51,14 @@ void write_result();//写结果阶段
 string print_Space(int num);//输出空格
 void print(int x);//输出空格
 
-void init()//初始化赋值
+void init()//初始化
 {
-	End_cycle[a[1]] = 1;
-	End_cycle[a[2]] = 2;
-	End_cycle[a[3]] = 2;
-	End_cycle[a[4]] = 40;
-	End_cycle[a[5]] = 10;
-
-	Func[a[1]] = 1;
-	Func[a[2]] = 4;
-	Func[a[3]] = 4;
-	Func[a[4]] = 5;
-	Busy.resize(P + 1);//设置数组的空间
+	Busy.resize(P + 1);
 	result.resize(M + 1);
+	
 	wait.resize(M + 1);
-	tmp_process.resize(4 + 1);//有4个阶段
-	process.resize(4 + 2);//有4个阶段
+	tmp_process.resize(N + 1);//有4个阶段
+	process.resize(N + 2);//有4个阶段
 }
 
 void Instr_Init()
@@ -74,7 +67,7 @@ void Instr_Init()
 	string s;
 	bool flag;
 	cin >> n;
-	instruction.resize(n + 1);//初始化分配地址
+	instruction.resize(n + 1);
 
 	getchar();//清除输入流中的换行符，以避免影响后续的输入
 
@@ -326,7 +319,19 @@ void issue_operation()
 			if_busy = true;
 		}
 		else {
-			if (!Busy[Func[instruction[x].op]])
+			if(instruction[x].op == a[1] && !Busy[1])
+			{
+				if_busy = true;
+			}
+			else if(instruction[x].op == a[2] && !Busy[4])
+			{
+				if_busy = true;
+			}
+			else if(instruction[x].op == a[3] && !Busy[4])
+			{
+				if_busy = true;
+			}
+			else if(instruction[x].op == a[4] && !Busy[5])
 			{
 				if_busy = true;
 			}
@@ -346,9 +351,23 @@ void issue_operation()
 					instruction[x].busy = 3;
 				}
 			}
-			else if (!Busy[Func[instruction[x].op]])
-			{
-				instruction[x].busy = Func[instruction[x].op];
+			else {
+				if(instruction[x].op == a[1] && !Busy[1])
+				{
+					instruction[x].busy = 1;
+				}
+				else if(instruction[x].op == a[2] && !Busy[4])
+				{
+					instruction[x].busy = 4;
+				}
+				else if(instruction[x].op == a[3] && !Busy[4])
+				{
+					instruction[x].busy = 4;
+				}
+				else if(instruction[x].op == a[4] && !Busy[5])
+				{
+					instruction[x].busy = 5;
+				}
 			}
 			//修改记分牌内容
 			fu = instruction[x].busy;
@@ -401,8 +420,8 @@ void execute()
 	for (int x : process[3])
 	{
 		//修改记分牌内容
-//		instruction[x].qj = 0;
-//		instruction[x].qk = 0;
+		instruction[x].qj = 0;
+		instruction[x].qk = 0;
 		instruction[x].rj = 0;
 		instruction[x].rk = 0;
 		instruction[x].cycle--;
@@ -424,7 +443,7 @@ void write_result()
 		//判断是否存在读后写（WAR）冲突
 		for (int y : process[2])
 		{
-			if (y >= x) break;
+			if (y >= x) continue;
 			if ((instruction[y].fj != instruction[x].fi || instruction[y].rj == 0) && (instruction[y].fk != instruction[x].fi || instruction[y].rk == 0))
 			{
 			}
@@ -458,9 +477,16 @@ void write_result()
 		for (j = 0; j < tmp_process[i].size(); j++)
 		{
 			tmp = tmp_process[i][j];
-			process[i].erase(tmp);
-			process[i + 1].insert(tmp);
 
+			for(int k=0;k<process[i].size();k++)
+			{
+				if(process[i][k] == tmp)
+				{
+					process[i].erase(process[i].begin() + k);
+					k--; 
+				}
+			}
+			process[i + 1].push_back(tmp);
 		}
 		tmp_process[i].clear();//清空
 	}
@@ -468,7 +494,8 @@ void write_result()
 
 int main()
 {
-	freopen("./instance/input1.txt", "r", stdin);//从input.txt文件中读入
+	
+	freopen("./instance/input2.txt", "r", stdin);//从input.txt文件中读入
 	freopen("./instance/output.txt", "w", stdout);//输出到output.txt文件中
 	
 	init();
@@ -478,6 +505,7 @@ int main()
 	{
 		cout<<"-------------------------------------------------------------------------------------------------"<<endl;
 		//如果所有指令均已完成
+		
 		issue_operation();
 		read_operands();
 		execute();
