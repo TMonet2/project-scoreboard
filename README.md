@@ -41,6 +41,9 @@ struct node  //指令结构 node 用于存储每条指令的详细信息
 vector<node> instruction;
 vector<int> Busy;//记录当前占用功能部件的指令索引
 vector<int> result;//记录写回结果的指令索引，用于跟踪寄存器的最新写入者
+vector<vector<int> > wait;//等待寄存器结果的指令 
+vector<vector<int> > tmp_process;//完成当前流程的指令
+vector<vector<int> > process;//各个阶段的指令队列 
 ```
 
 
@@ -79,10 +82,14 @@ void Instr_Init()
 ```
 const int M = 30;//寄存器的个数
 const int P = 5;//功能部件的个数
+const int N = 4;//表示算法流程数 
 void init()//初始化
 {
 	Busy.resize(P + 1);
 	result.resize(M + 1);
+	wait.resize(M + 1);
+	tmp_process.resize(N + 1);
+	process.resize(N + 2);
 }
 ```
 
@@ -101,23 +108,14 @@ void issue_operation()
 		bool if_busy = false;
 		if (instruction[x].op == a[5] && (!Busy[2] || !Busy[3])) if_busy = true;
 		else {
-			if (!Busy[Func[instruction[x].op]]) if_busy = true;
+			if(instruction[x].op == a[1] && !Busy[1])if_busy = true;
+			else if(instruction[x].op == a[2] && !Busy[4])if_busy = true;
+			else if(instruction[x].op == a[3] && !Busy[4])if_busy = true;
+			else if(instruction[x].op == a[4] && !Busy[5])if_busy = true;
 		}
 
 		//判断是否有写后写（WAW）冲突
 		if (if_busy && !result[instruction[x].fi]) {
-			if (instruction[x].op == a[5]) {
-				if (Busy[2] == 0) {
-					instruction[x].busy = 2;
-				}
-				else if (Busy[3] == 0)
-				{
-					instruction[x].busy = 3;
-				}
-			}
-			else if (!Busy[Func[instruction[x].op]]) {
-				instruction[x].busy = Func[instruction[x].op];
-			}
 			//修改记分牌内容
 			fu = instruction[x].busy;
 			Busy[fu] = x;
@@ -238,6 +236,7 @@ void write_result()
 
 然后每次大循环执行完毕之后，将结果Display一下，然后cycle++。
 
+---
 - 数据输出：
 
 1.如果使用的是命令行编译器（如GCC或MinGW），打开命令提示符（cmd），导航到`.cpp`文件所在的目录，并使用编译器命令进行编译。如下：
@@ -255,7 +254,7 @@ scoreboard.exe
 2.如果使用的是IDE（如Visual Studio、Code::Blocks或CLion），可以通过点击IDE中的构建或编译按钮来编译代码，点击运行按钮来直接运行程序。
 
 
-
+---
 - 4.测试用例：在instance目录中，包含含有各种冲突的测试用例，以验证算法的正确性和性能。通过比对字符串的形式，将输出结果与期望值继续对比，验证结果的正确性。
 
 1.如果使用的是命令行编译器（如GCC或MinGW），打开命令提示符（cmd），导航到`.cpp`文件所在的目录，并使用编译器命令进行编译。如下：
